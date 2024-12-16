@@ -86,7 +86,7 @@ endif(BUILD_GUI)
 add_library(labrecorder SHARED
     src/clirecorder.cpp
     src/recording.cpp
-	src/labrecorder_extern
+	src/labrecorder_extern.cpp
 )
 
 target_include_directories(labrecorder PRIVATE
