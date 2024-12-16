@@ -12,13 +12,8 @@ recording* global_recording = nullptr;
 
 extern "C" {
     recording* recording_create(const char* filename, 
-                                const lsl::stream_info* streams, 
                                 const char** watchfor) 
     {
-        std::vector<lsl::stream_info> stream_vec;
-        if (streams) {
-            stream_vec = std::vector<lsl::stream_info>(streams, streams + 1);
-        }
 
         std::vector<std::string> watchfor_vec;
         if (watchfor && *watchfor) {
@@ -29,12 +24,11 @@ extern "C" {
         }
 
         std::cout << "Filename: " << filename << std::endl;
-        std::cout << "Number of streams: " << stream_vec.size() << std::endl;
         std::cout << "Number of watchfor predicates: " << watchfor_vec.size() << std::endl;
 
         global_recording = new recording(
             std::string(filename), 
-            stream_vec, 
+            {}, 
             watchfor_vec, 
             {}, 
             true
