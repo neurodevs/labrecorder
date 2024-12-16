@@ -101,6 +101,7 @@ target_link_libraries(labrecorder
 )
 
 installLSLApp(labrecorder)
+
 if (BUILD_GUI)
 	installLSLApp(${PROJECT_NAME})
 	installLSLAuxFiles(${PROJECT_NAME}
