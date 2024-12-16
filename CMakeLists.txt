@@ -18,6 +18,9 @@ option(BUILD_GUI "Build the GUI, set to off for CLI only build" ON)
 set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
 set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "")
 
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH "/opt/local/lib")
+
 # Dependencies
 
 ## LSL
@@ -100,6 +103,7 @@ target_link_libraries(labrecorder
 	LSL::lsl
 )
 
+installLSLApp(xdfwriter)
 installLSLApp(labrecorder)
 
 if (BUILD_GUI)
