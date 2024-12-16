@@ -83,22 +83,23 @@ if (BUILD_GUI)
 endif(BUILD_GUI)
 
 
-add_executable(LabRecorderCLI MACOSX_BUNDLE
-	src/clirecorder.cpp
-	src/recording.h
-	src/recording.cpp
+add_library(labrecorder SHARED
+    src/clirecorder.cpp
+    src/recording.cpp
 )
 
-target_link_libraries(LabRecorderCLI
+target_include_directories(labrecorder PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/xdfwriter
+)
+
+target_link_libraries(labrecorder
 	PRIVATE
 	xdfwriter
 	Threads::Threads
 	LSL::lsl
 )
 
-installLSLApp(xdfwriter)
-installLSLApp(testxdfwriter)
-installLSLApp(LabRecorderCLI)
+installLSLApp(labrecorder)
 if (BUILD_GUI)
 	installLSLApp(${PROJECT_NAME})
 	installLSLAuxFiles(${PROJECT_NAME}
@@ -107,7 +108,7 @@ if (BUILD_GUI)
 		README.md
 	)
 else()
-	installLSLAuxFiles(LabRecorderCLI
+	installLSLAuxFiles(labrecorder
 		${PROJECT_NAME}.cfg
 		LICENSE
 		README.md
@@ -134,11 +135,11 @@ if (WIN32)
 			$<TARGET_FILE:xdfwriter>
 			$<TARGET_FILE_DIR:${PROJECT_NAME}>)
 	else()
-		add_custom_command(TARGET LabRecorderCLI POST_BUILD
+		add_custom_command(TARGET labrecorder POST_BUILD
 			COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			$<TARGET_FILE:LSL::lsl>
 			$<TARGET_FILE:xdfwriter>
-			$<TARGET_FILE_DIR:LabRecorderCLI>)
+			$<TARGET_FILE_DIR:labrecorder>)
 	endif(BUILD_GUI)
 endif()
 
@@ -150,10 +151,10 @@ if (BUILD_GUI)
 		$<TARGET_FILE_DIR:${PROJECT_NAME}>)
 else()
 	add_custom_command(
-		TARGET LabRecorderCLI POST_BUILD
+		TARGET labrecorder POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy
 		${CMAKE_CURRENT_SOURCE_DIR}//${PROJECT_NAME}.cfg
-		$<TARGET_FILE_DIR:LabRecorderCLI>)
+		$<TARGET_FILE_DIR:labrecorder>)
 endif(BUILD_GUI)
 
 if(Qt6_FOUND AND BUILD_GUI)
@@ -165,7 +166,7 @@ endif(Qt6_FOUND AND BUILD_GUI)
 set(CPACK_DEBIAN_LABRECORDER_PACKAGE_SECTION "science" CACHE INTERNAL "")
 LSLGenerateCPackConfig()
 
-if(APPLE AND NOT DEFINED ENV{GITHUB_ACTIONS})
+if(APPLE AND NOT DEFINED ENV{GITHUB_ACTIONS} AND OFF)
 	# Qt6 QtNetwork depends on libbrotidec which depends on libbroticommon but whose search path uses @loader_path.
 	#  Unfortunately, macdeployqt does not seem to traverse @loader_path dependencies.
 	#  So we are forced to call `fixup_bundle`. For now, we only do this if homebrew is present
@@ -187,4 +188,4 @@ if(APPLE AND NOT DEFINED ENV{GITHUB_ACTIONS})
 				"
 			)
 	endif()
-endif(APPLE AND NOT DEFINED ENV{GITHUB_ACTIONS})
+endif(APPLE AND NOT DEFINED ENV{GITHUB_ACTIONS} AND OFF)
