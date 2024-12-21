@@ -4,17 +4,19 @@
 #include <map>
 #include <thread>
 #include <chrono>
+#include <memory>
+#include <unordered_map>
+#include <mutex>
 #include "recording.h"
 #include "../xdfwriter/xdfwriter.h"
 #include <lsl_cpp.h>
 
-recording* global_recording = nullptr;
+std::unordered_map<recording*, std::shared_ptr<recording>> recording_map;
+std::mutex map_mutex;
 
 extern "C" {
-    recording* recording_create(const char* filename, 
-                                const char** watchfor) 
+    recording* recording_create(const char* filename, const char** watchfor) 
     {
-
         std::vector<std::string> watchfor_vec;
         if (watchfor && *watchfor) {
             while (*watchfor) {
@@ -26,35 +28,64 @@ extern "C" {
         std::cout << "Filename: " << filename << std::endl;
         std::cout << "Number of watchfor predicates: " << watchfor_vec.size() << std::endl;
 
-        global_recording = new recording(
+        // Create a shared_ptr to manage the recording instance
+        std::shared_ptr<recording> local_recording = std::make_shared<recording>(
             std::string(filename), 
-            {}, 
-            watchfor_vec, 
-            {}, 
+            std::vector<lsl::stream_info>{},
+            watchfor_vec,
+            std::map<std::string, int>{},
             true
         );
 
         std::cout << "Recording started!" << std::endl;
 
-        std::thread record_thread([]() {
+        // Store the shared_ptr in the global map to keep the recording alive
+        {
+            std::lock_guard<std::mutex> lock(map_mutex);
+            recording_map[local_recording.get()] = local_recording;
+        }
+
+        std::thread record_thread([local_recording]() {
             std::cout << "Background thread started." << std::endl;
             while (true) {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
+                if (local_recording.use_count() == 1) {
+                    std::cout << "No more references to recording. Exiting thread." << std::endl;
+                    break;
+                }
             }
+            std::cout << "Offsets thread is finished" << std::endl;
         });
 
-        record_thread.join();
+        record_thread.detach();
 
-        return global_recording;
+        std::cout << "Returning local recording!" << std::endl;
+
+        return local_recording.get();
     }
 
     void recording_delete(recording* instance) 
     {
-        delete instance;
+        std::cout << "Deleting recording instance." << std::endl;
+        std::lock_guard<std::mutex> lock(map_mutex);
+        auto it = recording_map.find(instance);
+        if (it != recording_map.end()) {
+            // Erase the shared_ptr from the map, allowing it to be destroyed if no other references exist
+            recording_map.erase(it);
+            std::cout << "Recording instance removed from map." << std::endl;
+        } else {
+            std::cout << "Recording instance not found in map." << std::endl;
+        }
+        // Note: Do not manually delete the instance as it's managed by shared_ptr
     }
 
     void recording_stop(recording* instance) 
     {
-        instance->requestStop();
+        std::cout << "Stopping recording instance." << std::endl;
+        if (instance) {
+            instance->requestStop();
+        } else {
+            std::cout << "Invalid recording instance pointer." << std::endl;
+        }
     }
 }
