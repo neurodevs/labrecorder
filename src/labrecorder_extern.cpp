@@ -25,8 +25,6 @@ extern "C" {
             }
         }
 
-        std::cout << "Filename: " << filename << std::endl;
-        std::cout << "Number of watchfor predicates: " << watchfor_vec.size() << std::endl;
 
         // Create a shared_ptr to manage the recording instance
         std::shared_ptr<recording> local_recording = std::make_shared<recording>(
@@ -37,7 +35,7 @@ extern "C" {
             true
         );
 
-        std::cout << "Recording started!" << std::endl;
+        std::cout << "Recording XDF to: " << filename << std::endl;
 
         // Store the shared_ptr in the global map to keep the recording alive
         {
@@ -46,33 +44,28 @@ extern "C" {
         }
 
         std::thread record_thread([local_recording]() {
-            std::cout << "Background thread started." << std::endl;
             while (true) {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 if (local_recording.use_count() == 1) {
-                    std::cout << "No more references to recording. Exiting thread." << std::endl;
                     break;
                 }
             }
-            std::cout << "Offsets thread is finished" << std::endl;
         });
 
         record_thread.detach();
-
-        std::cout << "Returning local recording!" << std::endl;
 
         return local_recording.get();
     }
 
     void recording_delete(recording* instance) 
     {
-        std::cout << "Deleting recording instance." << std::endl;
+        std::cout << "Deleting recording instance..." << std::endl;
         std::lock_guard<std::mutex> lock(map_mutex);
         auto it = recording_map.find(instance);
+
         if (it != recording_map.end()) {
             // Erase the shared_ptr from the map, allowing it to be destroyed if no other references exist
             recording_map.erase(it);
-            std::cout << "Recording instance removed from map." << std::endl;
         } else {
             std::cout << "Recording instance not found in map." << std::endl;
         }
@@ -81,7 +74,7 @@ extern "C" {
 
     void recording_stop(recording* instance) 
     {
-        std::cout << "Stopping recording instance." << std::endl;
+        std::cout << "Stopping recording instance..." << std::endl;
         if (instance) {
             instance->requestStop();
         } else {
