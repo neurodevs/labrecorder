@@ -35,8 +35,6 @@ extern "C" {
             true
         );
 
-        std::cout << "Recording XDF to: " << filename << std::endl;
-
         // Store the shared_ptr in the global map to keep the recording alive
         {
             std::lock_guard<std::mutex> lock(map_mutex);
@@ -59,26 +57,20 @@ extern "C" {
 
     void recording_delete(recording* instance) 
     {
-        std::cout << "Deleting recording instance..." << std::endl;
         std::lock_guard<std::mutex> lock(map_mutex);
         auto it = recording_map.find(instance);
 
         if (it != recording_map.end()) {
             // Erase the shared_ptr from the map, allowing it to be destroyed if no other references exist
             recording_map.erase(it);
-        } else {
-            std::cout << "Recording instance not found in map." << std::endl;
         }
         // Note: Do not manually delete the instance as it's managed by shared_ptr
     }
 
     void recording_stop(recording* instance) 
     {
-        std::cout << "Stopping recording instance..." << std::endl;
         if (instance) {
             instance->requestStop();
-        } else {
-            std::cout << "Invalid recording instance pointer." << std::endl;
         }
     }
 }
