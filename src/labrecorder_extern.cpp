@@ -82,7 +82,7 @@ extern "C" {
             }
         }
 
-        std::cout << "[recording_create] Recording created and registered.\n";
+        std::cout << "Recording created and registered.\n";
         return handle;
     }
 
@@ -110,6 +110,8 @@ extern "C" {
         } catch (...) {
             std::cerr << "[recording_stop] Unknown exception in requestStop().\n";
         }
+
+        std::cout << "Recording stopped.\n";
     }
 
     // Destroy a recording instance.
@@ -136,6 +138,6 @@ extern "C" {
 
         // owned goes out of scope here; ~recording() runs.
         // That should stop the recording, join any threads, and close the file.
-        std::cout << "[recording_delete] Recording destroyed.\n";
+        std::cout << "Recording destroyed.\n";
     }
 }
