@@ -62,10 +62,11 @@ public:
 	 *but is not yet online, or a more generic query (e.g., "record from everything that's out
 	 *there").
 	 * @param collect_offsets Whether to collect time offset measurements periodically.
+	 * @param info Extra <key>value</key> entries for the file header (see XDFWriter).
 	 */
 	recording(const std::string &filename, const std::vector<lsl::stream_info> &streams,
 		const std::vector<std::string> &watchfor, std::map<std::string, int> syncOptions,
-		bool collect_offsets = true);
+		bool collect_offsets = true, const info_entries_t &info = {});
 
 	/** Destructor.
 	 * Stops the recording and closes the file.

@@ -6,7 +6,9 @@
 #include <mutex>
 #include <sstream>
 #include <thread>
+#include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #ifdef XDFZ_SUPPORT
@@ -18,6 +20,7 @@ using outfile_t = std::ofstream;
 #endif
 
 using streamid_t = uint32_t;
+using info_entries_t = std::vector<std::pair<std::string, std::string>>;
 
 // the currently defined chunk tags
 enum class chunk_tag_t : uint16_t {
@@ -45,8 +48,11 @@ public:
 	/**
 	 * @brief XDFWriter Construct a XDFWriter object
 	 * @param filename  Filename to write to
+	 * @param info  Extra <key>value</key> entries for the FileHeader's <info>.
+	 * Keys must be XML names other than version and datetime; values are escaped.
+	 * @throws std::invalid_argument for an invalid or reserved key
 	 */
-	XDFWriter(const std::string &filename);
+	XDFWriter(const std::string &filename, const info_entries_t &info = {});
 
 	template <typename T>
 	void write_data_chunk(streamid_t streamid, const std::vector<double> &timestamps,

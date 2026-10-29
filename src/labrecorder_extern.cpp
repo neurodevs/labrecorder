@@ -24,11 +24,17 @@ extern "C" {
     // filename        path to the .xdf file
     // watchfor        null-terminated array of const char* predicates; last element must be nullptr
     // watchfor_count  number of entries in watchfor array
+    // info_keys       array of header keys, written as <key>value</key> in the file header's <info>
+    // info_values     array of header values, escaped as XML text
+    // info_count      number of entries in info_keys and info_values
     //
     // Returns: opaque recording* handle, or nullptr on failure.
     recording* recording_create(const char* filename, 
                                 const char** watchfor, 
-                                std::size_t watchfor_count) {
+                                std::size_t watchfor_count,
+                                const char** info_keys,
+                                const char** info_values,
+                                std::size_t info_count) {
         if (!filename || !*filename) {
             std::cerr << "[recording_create] Invalid filename.\n";
             return nullptr;
@@ -51,6 +57,25 @@ extern "C" {
             }
         }
 
+        info_entries_t info;
+
+        if (info_count > 0) {
+            if (!info_keys || !info_values) {
+                std::cerr << "[recording_create] Missing info keys or values.\n";
+                return nullptr;
+            }
+
+            info.reserve(info_count);
+            for (std::size_t i = 0; i < info_count; ++i) {
+                if (!info_keys[i] || !info_values[i]) {
+                    std::cerr << "[recording_create] Null info entry at index "
+                            << i << "\n";
+                    return nullptr;
+                }
+                info.emplace_back(info_keys[i], info_values[i]);
+            }
+        }
+
         std::map<std::string, int> sync_options; // currently empty; fill as needed
 
         std::unique_ptr<recording> rec;
@@ -60,7 +85,8 @@ extern "C" {
                 stream_vec,
                 watchfor_vec,
                 sync_options,
-                true  // collect_offsets
+                true,  // collect_offsets
+                info
             );
         } catch (const std::exception& ex) {
             std::cerr << "[recording_create] Exception constructing recording: "

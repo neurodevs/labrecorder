@@ -1,6 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "xdfwriter.h"
+#include <cctype>
 #include <iostream>
+#include <stdexcept>
 #include <iomanip>
 #include <chrono>
 #include <ctime>
@@ -17,11 +19,51 @@ void write_timestamp(std::ostream &out, double ts) {
 	}
 }
 
-XDFWriter::XDFWriter(const std::string &filename)
+static bool is_xml_name(const std::string &name) {
+	if (name.empty()) return false;
+	const auto is_start = [](char c) { return std::isalpha(static_cast<unsigned char>(c)) || c == '_'; };
+	const auto is_rest = [&](char c) {
+		return is_start(c) || std::isdigit(static_cast<unsigned char>(c)) || c == '-' || c == '.';
+	};
+	if (!is_start(name[0])) return false;
+	for (char c : name)
+		if (!is_rest(c)) return false;
+	return true;
+}
+
+static std::string escaped(const std::string &text) {
+	std::string result;
+	result.reserve(text.size());
+	for (char c : text) {
+		switch (c) {
+		case '&': result += "&amp;"; break;
+		case '<': result += "&lt;"; break;
+		case '>': result += "&gt;"; break;
+		case '"': result += "&quot;"; break;
+		case '\'': result += "&apos;"; break;
+		default: result += c;
+		}
+	}
+	return result;
+}
+
+static void throw_if_invalid(const info_entries_t &info) {
+	for (const auto &entry : info) {
+		const auto &key = entry.first;
+		if (!is_xml_name(key)) throw std::invalid_argument("Invalid XDF header key: " + key);
+		if (key == "version" || key == "datetime")
+			throw std::invalid_argument("Reserved XDF header key: " + key);
+	}
+}
+
+XDFWriter::XDFWriter(const std::string &filename, const info_entries_t &info)
 #ifndef XDFZ_SUPPORT
-	: file_(filename, std::ios::binary | std::ios::trunc)
+	: file_((throw_if_invalid(info), filename), std::ios::binary | std::ios::trunc)
 #endif
 {
+#ifdef XDFZ_SUPPORT
+	throw_if_invalid(info);
+#endif
 	// open file stream
 #ifdef XDFZ_SUPPORT
 	if (boost::iends_with(filename, ".xdfz")) file_.push(boost::iostreams::zlib_compressor());
@@ -36,6 +78,9 @@ XDFWriter::XDFWriter(const std::string &filename)
 	// datetime
 	std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	header << "\n    <datetime>" << std::put_time(std::localtime(&now), "%FT%T%z") << "</datetime>";
+	for (const auto &entry : info)
+		header << "\n    <" << entry.first << ">" << escaped(entry.second) << "</" << entry.first
+			   << ">";
 	header << "\n  </info>";
 	_write_chunk(chunk_tag_t::fileheader, header.str());
 }

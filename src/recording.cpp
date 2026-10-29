@@ -83,8 +83,8 @@ inline void timed_join_or_detach(
 
 recording::recording(const std::string &filename, const std::vector<lsl::stream_info> &streams,
 	const std::vector<std::string> &watchfor, std::map<std::string, int> syncOptions,
-	bool collect_offsets)
-	: file_(filename), offsets_enabled_(collect_offsets), unsorted_(false), streamid_(0),
+	bool collect_offsets, const info_entries_t &info)
+	: file_(filename, info), offsets_enabled_(collect_offsets), unsorted_(false), streamid_(0),
 	  shutdown_(false), headers_to_finish_(0), streaming_to_finish_(0),
 	  sync_options_by_stream_(std::move(syncOptions)) {
 	// create a recording thread for each stream
