@@ -29,6 +29,8 @@ const auto max_footers_wait = std::chrono::seconds(2);
 // maximum waiting time for subscribing to a stream, in seconds (if exceeded, stream subscription
 // will take place later)
 const double max_open_wait = 5;
+// how long to wait for a stream's info before checking again whether we are shutting down
+const double info_retry_wait = 1;
 // maximum time that we wait to join a thread, in seconds
 const std::chrono::seconds max_join_wait(5);
 
@@ -129,6 +131,9 @@ private:
 
 	/// record boundary markers every few seconds
 	void record_boundaries();
+
+	/// Waits for the stream info of an inlet, giving up once the recording shuts down.
+	lsl::stream_info info_unless_shutdown(lsl::stream_inlet &in);
 
 	// record ClockOffset chunks from a given stream
 	void record_offsets(

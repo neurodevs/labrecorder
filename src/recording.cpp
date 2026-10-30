@@ -130,6 +130,8 @@ void recording::record_from_query_results(const std::string &query) {
 		while (!shutdown_) {
 			// periodically re-resolve the query
 			const std::vector<lsl::stream_info> results = lsl::resolve_stream(query, 0, resolve_interval);
+			// streams resolved while shutting down may already be gone, so never start recording them
+			if (shutdown_) break;
 			// for each result...
 			for (const auto &result : results) {
 				// if it is a new stream...
@@ -187,7 +189,7 @@ void recording::record_from_streaminfo(const lsl::stream_info &src, bool phase_l
 			}
 
 			// retrieve the stream header & get its XML version
-			file_.write_stream_header(streamid, in->info().as_xml());
+			file_.write_stream_header(streamid, info_unless_shutdown(*in).as_xml());
 			std::cout << "Received header for stream " << src.name() << "." << std::endl;
 
 			leave_headers_phase(phase_locked);
@@ -278,6 +280,17 @@ void recording::record_from_streaminfo(const lsl::stream_info &src, bool phase_l
 		}
 	} catch (std::exception &e) {
 		std::cout << "Error in the record_from_streaminfo thread: " << e.what() << std::endl;
+	}
+}
+
+lsl::stream_info recording::info_unless_shutdown(lsl::stream_inlet &in) {
+	while (true) {
+		try {
+			return in.info(info_retry_wait);
+		} catch (lsl::timeout_error &) {
+			if (shutdown_)
+				throw std::runtime_error("Shut down before receiving the stream info.");
+		}
 	}
 }
 
